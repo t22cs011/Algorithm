@@ -1,0 +1,13 @@
+\documentclass{article}
+\usepackage{amsmath} % 数式環境のためのパッケージ
+\begin{document}
+
+\begin{equation*}
+  E(x_i=0)
+  =-\frac12\Bigl(
+     \sum_{\substack{k=1\\k\neq i}}^n\sum_{\substack{l=1\\l\neq i}}^n w_{k,l}x_kx_l
+   +2\sum_{\substack{l=1\\l\neq i}}^n\bigl(w_{i,l}\cdot0\cdot x_l + w_{l,i}\cdot x_l\cdot0\bigr)
+  \Bigr)
+   +\sum_{\substack{k=1\\k\neq i}}^n\theta_kx_k
+\end{equation*}
+\end{document}
