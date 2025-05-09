@@ -91,110 +91,75 @@ class MultiLayerNet:  # 多層パーセプトロン（MLP）を実現するク�
         return grads  # すべての層の勾配を返す
 
 
-if __name__ == '__main__':  # このスクリプトが直接実行された場合のエントリポイント
-    # ユーザー入力によるパラメータ指定
-    hidden_dims_str = input("中間層のニューロン数をカンマ区切りで入力してください（例: 64,128,64）: ")
-    hidden_dims = [int(x) for x in hidden_dims_str.split(',')]
-    epochs = int(input("学習エポック数を入力してください: "))
-    batch_size = int(input("ミニバッチサイズを入力してください: "))
-    learning_rate = float(input("学習率を入力してください: "))
+if __name__ == '__main__':  # 自動実験モード
+    experiments = [
+        {"hidden_dims": [64], "epochs": 50, "batch_size": 128, "lr": 0.01},
+        {"hidden_dims": [128, 128], "epochs": 50, "batch_size": 128, "lr": 0.01},
+        {"hidden_dims": [256, 256, 256], "epochs": 100, "batch_size": 128, "lr": 0.005},
+        {"hidden_dims": [512, 512, 512, 512], "epochs": 100, "batch_size": 128, "lr": 0.001},
+        {"hidden_dims": [1024, 1024], "epochs": 100, "batch_size": 128, "lr": 0.001},
+        {"hidden_dims": [1024]*6, "epochs": 100, "batch_size": 128, "lr": 0.001},
+        {"hidden_dims": [64]*20, "epochs": 100, "batch_size": 128, "lr": 0.01},
+        {"hidden_dims": [8]*12, "epochs": 100, "batch_size": 128, "lr": 0.01},
+        {"hidden_dims": [512, 512], "epochs": 100, "batch_size": 128, "lr": 0.001, "train_ratio": 0.25},
+        {"hidden_dims": [1024, 1024], "epochs": 100, "batch_size": 128, "lr": 0.001, "train_ratio": 0.10}
+    ]
 
-    # 活性化関数選択
-    act_options = {
-        'sigmoid': sigmoid,
-        'relu': relu
-    }
-    hidden_act_input = input("中間層の活性化関数を選択してください (sigmoid, relu) [default: sigmoid]: ").strip()
-    hidden_activation = act_options.get(hidden_act_input, sigmoid)
+    for idx, config in enumerate(experiments, 1):
+        print(f"\n===== Running Experiment A{idx}: {config} =====")
+        X_train, X_test, T_train, T_test = load_mnist()
+        train_ratio = config.get("train_ratio", 1.0)
+        if train_ratio < 1.0:
+            N = int(len(X_train) * train_ratio)
+            X_train, T_train = X_train[:N], T_train[:N]
 
-    print(f"実行設定: 中間層={hidden_dims}, エポック数={epochs}, バッチサイズ={batch_size}, 学習率={learning_rate}")
-    input("Enterキーを押すと学習を開始します...")
+        net = MultiLayerNet(
+            input_size=784,
+            hidden_dims=config["hidden_dims"],
+            output_size=10,
+            hidden_activation=relu
+        )
+        optimizer = Adam(lr=config["lr"])
+        train_acc_list, test_acc_list = [], []
+        iter_per_epoch = max(1, X_train.shape[0] // config["batch_size"])
+        start_time = time.time()
 
-    # MNIST読み込み開始
-    print("MNISTデータセットを読み込み中...")
-    X_train, X_test, T_train, T_test = load_mnist()
+        for epoch in range(config["epochs"]):
+            for _ in range(iter_per_epoch):
+                batch_mask = np.random.choice(X_train.shape[0], config["batch_size"])
+                x_batch = X_train[batch_mask]
+                t_batch = T_train[batch_mask]
+                grads = net.gradient(x_batch, t_batch)
+                optimizer.update(net.params, grads)
+            train_acc = net.accuracy(X_train, T_train)
+            test_acc = net.accuracy(X_test, T_test)
+            train_acc_list.append(train_acc)
+            test_acc_list.append(test_acc)
+            print(f"Epoch {epoch+1}/{config['epochs']} - Train: {train_acc:.4f}, Test: {test_acc:.4f}")
 
-    net = MultiLayerNet(
-        input_size=784,
-        hidden_dims=hidden_dims,
-        output_size=10,
-        hidden_activation=hidden_activation
-    )  # MultiLayerNetクラスのインスタンスを生成しモデルを初期化
+        layer_str = '-'.join(str(n) for n in config["hidden_dims"])
+        filename = (
+            f"layers[{layer_str}]_ep{config['epochs']}_bs{config['batch_size']}"
+            f"_lr{config['lr']}_Adam_mid-relu_out-softmax.png"
+        )
+        title = (
+            f"Layers:{len(config['hidden_dims'])}({layer_str}) bs:{config['batch_size']} lr:{config['lr']} "
+            f"opt:Adam hid_act:relu out_act:softmax"
+        )
+        elapsed = time.time() - start_time
 
-    train_acc_list = []  # 各エポックにおける訓練精度を記録するリストを初期化
-    test_acc_list = []  # 各エポックにおけるテスト精度を記録するリストを初期化
-    iter_per_epoch = X_train.shape[0] // batch_size  # 1エポックあたりのイテレーション数を計算
+        epochs_range = np.arange(1, config["epochs"]+1)
+        plt.figure()
+        plt.plot(epochs_range, train_acc_list, label='Training Accuracy')
+        plt.plot(epochs_range, test_acc_list, label='Test Accuracy')
+        plt.xlabel('Epoch')
+        plt.ylabel('Accuracy')
+        plt.title(title)
+        plt.legend()
+        plt.grid(True)
+        plt.figtext(0.01, 0.02, f"Execution time: {elapsed:.2f} s", ha='left', va='bottom')
+        plt.savefig(filename)
+        print(f"✅ Saved: {filename} ({elapsed:.2f}秒)")
+        plt.close()
 
-    # 最適化手法選択（optimizer.py 内のクラスを利用）
-    opt_options = {
-        'sgd': SGD,
-        'momentum': Momentum,
-        'nesterov': Nesterov,
-        'adagrad': AdaGrad,
-        'rmsprop': RMSprop,
-        'adam': Adam
-    }
-    opt_input = input(
-        "最適化手法を選択してください (sgd, momentum, nesterov, adagrad, rmsprop, adam) [default: adam]: "
-    ).strip().lower()
-    OptimizerClass = opt_options.get(opt_input, Adam)
-    optimizer = OptimizerClass(lr=learning_rate)
-
-    # 計測開始：学習開始直前
-    start_time = time.time()
-
-    for epoch in range(epochs):
-        progress_interval = max(1, iter_per_epoch // 10)  # 進捗表示の間隔を設定（各エポックの10分の1ごとに表示）
-        for i in range(iter_per_epoch):
-            batch_mask = np.random.choice(X_train.shape[0], batch_size)
-            x_batch = X_train[batch_mask]
-            t_batch = T_train[batch_mask]
-            grads = net.gradient(x_batch, t_batch)
-            optimizer.update(net.params, grads)
-            if (i + 1) % progress_interval == 0:
-                print(f"Epoch {epoch+1}/{epochs} - Batch {i+1}/{iter_per_epoch} processed")
-        train_acc = net.accuracy(X_train, T_train)
-        test_acc = net.accuracy(X_test, T_test)
-        train_acc_list.append(train_acc)
-        test_acc_list.append(test_acc)
-        print(f"Epoch {epoch+1}/{epochs} - 訓練精度: {train_acc:.4f} - テスト精度: {test_acc:.4f}")
-    
-    epochs_range = np.arange(1, epochs+1)  # エポック番号の範囲をNumPy配列として生成
-    plt.plot(epochs_range, train_acc_list, label='Training Accuracy')  # 訓練精度の推移をグラフにプロット
-    plt.plot(epochs_range, test_acc_list, label='Test Accuracy')  # テスト精度の推移をグラフにプロット
-    plt.xlabel('Epoch')  # x軸ラベルを設定
-    plt.ylabel('Accuracy')  # y軸ラベルを設定
-    # グラフタイトルに実験設定を表示
-    num_layers = len(hidden_dims)
-    layer_str = '-'.join(str(n) for n in hidden_dims)
-    opt_name = optimizer.__class__.__name__
-    mid_act = net.hidden_activation.__name__
-    out_act = 'softmax'
-    title_str = (
-        f"Layers:{num_layers}[{layer_str}] "
-        f"bs:{batch_size} lr:{learning_rate} "
-        f"opt:{opt_name} hid_act:{mid_act} out_act:{out_act}"
-    )
-    plt.title(title_str)
-    plt.legend()  # 凡例を表示
-    plt.grid(True)  # グリッド（目盛り線）を表示
-    # ファイル名の自動生成
-    # 実際に使用している活性化関数名を取得
-    mid_act = net.hidden_activation.__name__  # hidden layer activation
-    out_act = 'softmax'  # output layer activation
-    optimizer_name = optimizer.__class__.__name__
-    layer_str = '-'.join(str(n) for n in hidden_dims)
-    output_filename = (
-        f"layers[{layer_str}]_ep{epochs}_bs{batch_size}"
-        f"_lr{learning_rate}_{optimizer_name}"
-        f"_mid-{mid_act}_out-{out_act}.png"
-    )
-    plt.savefig(output_filename)
-    print(f"精度推移グラフを保存しました: {output_filename}")
-    end_time = time.time()  # 実行終了時刻を記録
-    elapsed = end_time - start_time
-    print(f"全処理の実行時間: {elapsed:.2f} 秒")
-    # 実行時間をグラフ外に表示
-    plt.figtext(0.01, 0.02, f"Execution time: {elapsed:.2f} s", ha='left', va='bottom')
-    plt.show(block=False)  # 非ブロッキング表示
-    input("Enterキーを押して終了します...")
+    print("✅ All experiments completed")
