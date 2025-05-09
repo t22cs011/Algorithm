@@ -160,10 +160,10 @@ if __name__ == '__main__':  # このスクリプトが直接実行された場�
         print(f"Epoch {epoch+1}/{epochs} - 訓練精度: {train_acc:.4f} - テスト精度: {test_acc:.4f}")
     
     epochs_range = np.arange(1, epochs+1)  # エポック番号の範囲をNumPy配列として生成
-    plt.plot(epochs_range, train_acc_list, label='訓練精度')  # 訓練精度の推移をグラフにプロット
-    plt.plot(epochs_range, test_acc_list, label='テスト精度')  # テスト精度の推移をグラフにプロット
-    plt.xlabel('エポック')  # x軸ラベルを設定
-    plt.ylabel('認識精度')  # y軸ラベルを設定
+    plt.plot(epochs_range, train_acc_list, label='Training Accuracy')  # 訓練精度の推移をグラフにプロット
+    plt.plot(epochs_range, test_acc_list, label='Test Accuracy')  # テスト精度の推移をグラフにプロット
+    plt.xlabel('Epoch')  # x軸ラベルを設定
+    plt.ylabel('Accuracy')  # y軸ラベルを設定
     # グラフタイトルに実験設定を表示
     num_layers = len(hidden_dims)
     layer_str = '-'.join(str(n) for n in hidden_dims)
@@ -194,5 +194,7 @@ if __name__ == '__main__':  # このスクリプトが直接実行された場�
     end_time = time.time()  # 実行終了時刻を記録
     elapsed = end_time - start_time
     print(f"全処理の実行時間: {elapsed:.2f} 秒")
+    # 実行時間をグラフ外に表示
+    plt.figtext(0.01, 0.02, f"Execution time: {elapsed:.2f} s", ha='left', va='bottom')
     plt.show(block=False)  # 非ブロッキング表示
     input("Enterキーを押して終了します...")
