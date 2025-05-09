@@ -1,7 +1,7 @@
 import numpy as np  # numpyライブラリをnpというエイリアスでインポート（数値計算用）
 import matplotlib.pyplot as plt  # グラフ描画用ライブラリmatplotlibのpyplotモジュールをpltとしてインポート
 from functions import sigmoid, softmax, relu, cross_entropy_error  # 必要な活性化関数と損失関数をfunctionsモジュールからインポート
-from optimizer import Adam  # 同一パッケージ内のoptimizerモジュールからAdamオプティマイザをインポート
+from optimizer import SGD, Momentum, Nesterov, AdaGrad, RMSprop, Adam  # 同一パッケージ内のoptimizerモジュールから最適化手法をインポート
 import time  # 実行時間計測用
 
 # 以下の設定で日本語フォントをAppleGothicに変更（macOSの場合）
@@ -130,8 +130,20 @@ if __name__ == '__main__':  # このスクリプトが直接実行された場�
     test_acc_list = []  # 各エポックにおけるテスト精度を記録するリストを初期化
     iter_per_epoch = X_train.shape[0] // batch_size  # 1エポックあたりのイテレーション数を計算
 
-    # Adamオプティマイザを使用した更新に変更
-    optimizer = Adam(lr=learning_rate)  # Adamオプティマイザを初期化
+    # 最適化手法選択（optimizer.py 内のクラスを利用）
+    opt_options = {
+        'sgd': SGD,
+        'momentum': Momentum,
+        'nesterov': Nesterov,
+        'adagrad': AdaGrad,
+        'rmsprop': RMSprop,
+        'adam': Adam
+    }
+    opt_input = input(
+        "最適化手法を選択してください (sgd, momentum, nesterov, adagrad, rmsprop, adam) [default: adam]: "
+    ).strip().lower()
+    OptimizerClass = opt_options.get(opt_input, Adam)
+    optimizer = OptimizerClass(lr=learning_rate)
 
     for epoch in range(epochs):
         progress_interval = max(1, iter_per_epoch // 10)  # 進捗表示の間隔を設定（各エポックの10分の1ごとに表示）
@@ -154,7 +166,18 @@ if __name__ == '__main__':  # このスクリプトが直接実行された場�
     plt.plot(epochs_range, test_acc_list, label='テスト精度')  # テスト精度の推移をグラフにプロット
     plt.xlabel('エポック')  # x軸ラベルを設定
     plt.ylabel('認識精度')  # y軸ラベルを設定
-    plt.title('MNIST認識精度の推移')  # グラフタイトルを設定
+    # グラフタイトルに実験設定を表示
+    num_layers = len(hidden_dims)
+    layer_str = '-'.join(str(n) for n in hidden_dims)
+    opt_name = optimizer.__class__.__name__
+    mid_act = net.hidden_activation.__name__
+    out_act = net.output_activation.__name__
+    title_str = (
+        f"Layers:{num_layers}[{layer_str}] "
+        f"bs:{batch_size} lr:{learning_rate} "
+        f"opt:{opt_name} hid_act:{mid_act} out_act:{out_act}"
+    )
+    plt.title(title_str)
     plt.legend()  # 凡例を表示
     plt.grid(True)  # グリッド（目盛り線）を表示
     # ファイル名の自動生成
