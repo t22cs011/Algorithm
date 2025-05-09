@@ -93,7 +93,6 @@ class MultiLayerNet:  # 多層パーセプトロン（MLP）を実現するク�
 
 if __name__ == '__main__':  # このスクリプトが直接実行された場合のエントリポイント
     # ユーザー入力によるパラメータ指定
-    start_time = time.time()  # 実行開始時刻を記録
     hidden_dims_str = input("中間層のニューロン数をカンマ区切りで入力してください（例: 64,128,64）: ")
     hidden_dims = [int(x) for x in hidden_dims_str.split(',')]
     epochs = int(input("学習エポック数を入力してください: "))
@@ -140,6 +139,9 @@ if __name__ == '__main__':  # このスクリプトが直接実行された場�
     ).strip().lower()
     OptimizerClass = opt_options.get(opt_input, Adam)
     optimizer = OptimizerClass(lr=learning_rate)
+
+    # 計測開始：学習開始直前
+    start_time = time.time()
 
     for epoch in range(epochs):
         progress_interval = max(1, iter_per_epoch // 10)  # 進捗表示の間隔を設定（各エポックの10分の1ごとに表示）
