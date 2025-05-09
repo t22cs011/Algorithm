@@ -29,8 +29,11 @@ def one_hot(labels, num_classes=10):  # ラベルをone-hotエンコーディン
 
 
 class MultiLayerNet:  # 多層パーセプトロン（MLP）を実現するクラスの定義
-    def __init__(self, input_size=784, hidden_dims=[50], output_size=10):  # コンストラクタ: 入力サイズ、隠れ層の構造、出力サイズを指定
+    def __init__(self, input_size=784, hidden_dims=[50], output_size=10,
+                 hidden_activation=sigmoid, output_activation=softmax):  # コンストラクタ: 入力サイズ、隠れ層の構造、出力サイズを指定
         self.layers = [input_size] + hidden_dims + [output_size]  # ネットワークの各層のサイズをリストで定義（入力層→隠れ層→出力層）
+        self.hidden_activation = hidden_activation
+        self.output_activation = output_activation
         self.num_layers = len(self.layers) - 1  # 重みを持つレイヤーの数（隠れ層と出力層の合計）を計算
         self.params = {}  # パラメータ（重みとバイアス）を保存する辞書を初期化
         for i in range(self.num_layers):  # 各レイヤーに対してパラメータを初期化
@@ -42,10 +45,10 @@ class MultiLayerNet:  # 多層パーセプトロン（MLP）を実現するク�
         for i in range(1, self.num_layers):  # 隠れ層までループ
             W = self.params['W' + str(i)]  # i層目の重みを取得
             b = self.params['b' + str(i)]  # i層目のバイアスを取得
-            out = sigmoid(np.dot(out, W) + b)  # 線形変換にシグモイド活性化関数を適用
+            out = self.hidden_activation(np.dot(out, W) + b)  # 線形変換にhidden_activationを適用
         W = self.params['W' + str(self.num_layers)]  # 出力層の重みを取得
         b = self.params['b' + str(self.num_layers)]  # 出力層のバイアスを取得
-        out = softmax(np.dot(out, W) + b)  # 出力層で線形変換にソフトマックスを適用し確率分布を計算
+        out = self.output_activation(np.dot(out, W) + b)  # 出力層で線形変換にoutput_activationを適用し確率分布を計算
         return out  # 予測結果（確率分布）を返す
     
     def loss(self, x, t):  # 損失関数の値を計算するメソッド
@@ -69,16 +72,20 @@ class MultiLayerNet:  # 多層パーセプトロン（MLP）を実現するク�
             a = np.dot(activations[i-1], W) + b  # 線形変換を計算
             pre_activations.append(a)  # 線形変換結果を保存
             if i == self.num_layers:  # 最終層の場合
-                z = relu(a)  # ソフトマックス関数を適用して出力確率を計算
+                z = self.output_activation(a)  # output_activationを適用
             else:  # 隠れ層の場合
-                z = sigmoid(a)  # シグモイド関数で活性化を計算
+                z = self.hidden_activation(a)  # hidden_activationを適用
             activations.append(z)  # 活性化結果をリストに追加
         delta = (activations[-1] - t) / batch_num  # 出力層の誤差（交差エントロピーとソフトマックスの組み合わせによる微分）を計算
         grads['W' + str(self.num_layers)] = np.dot(activations[-2].T, delta)  # 出力層の重みの勾配を計算
         grads['b' + str(self.num_layers)] = np.sum(delta, axis=0)  # 出力層のバイアスの勾配を計算
         for i in range(self.num_layers - 1, 0, -1):  # 逆伝播を隠れ層に向かって実施
             W_next = self.params['W' + str(i+1)]  # 次の層の重みを取得
-            delta = np.dot(delta, W_next.T) * (activations[i] * (1 - activations[i]))  # 誤差を逆伝播し、シグモイドの微分で重み付け
+            if self.hidden_activation == sigmoid:
+                derivative = activations[i] * (1 - activations[i])
+            else:
+                derivative = (pre_activations[i-1] > 0).astype(float)
+            delta = np.dot(delta, W_next.T) * derivative  # 誤差を逆伝播し、活性化関数の微分で重み付け
             grads['W' + str(i)] = np.dot(activations[i-1].T, delta)  # i層目の重みの勾配を計算
             grads['b' + str(i)] = np.sum(delta, axis=0)  # i層目のバイアスの勾配を計算
         return grads  # すべての層の勾配を返す
@@ -93,6 +100,17 @@ if __name__ == '__main__':  # このスクリプトが直接実行された場�
     batch_size = int(input("ミニバッチサイズを入力してください: "))
     learning_rate = float(input("学習率を入力してください: "))
 
+    # 活性化関数選択
+    act_options = {
+        'sigmoid': sigmoid,
+        'relu': relu,
+        'softmax': softmax
+    }
+    hidden_act_input = input("中間層の活性化関数を選択してください (sigmoid, relu) [default: sigmoid]: ").strip()
+    hidden_activation = act_options.get(hidden_act_input, sigmoid)
+    out_act_input = input("出力層の活性化関数を選択してください (softmax, sigmoid, relu) [default: softmax]: ").strip()
+    output_activation = act_options.get(out_act_input, softmax)
+
     print(f"実行設定: 隠れ層={hidden_dims}, エポック数={epochs}, バッチサイズ={batch_size}, 学習率={learning_rate}")
     input("Enterキーを押すと学習を開始します...")
 
@@ -100,7 +118,13 @@ if __name__ == '__main__':  # このスクリプトが直接実行された場�
     print("MNISTデータセットを読み込み中...")
     X_train, X_test, T_train, T_test = load_mnist()
 
-    net = MultiLayerNet(input_size=784, hidden_dims=hidden_dims, output_size=10)  # MultiLayerNetクラスのインスタンスを生成しモデルを初期化
+    net = MultiLayerNet(
+        input_size=784,
+        hidden_dims=hidden_dims,
+        output_size=10,
+        hidden_activation=hidden_activation,
+        output_activation=output_activation
+    )  # MultiLayerNetクラスのインスタンスを生成しモデルを初期化
 
     train_acc_list = []  # 各エポックにおける訓練精度を記録するリストを初期化
     test_acc_list = []  # 各エポックにおけるテスト精度を記録するリストを初期化
@@ -135,8 +159,8 @@ if __name__ == '__main__':  # このスクリプトが直接実行された場�
     plt.grid(True)  # グリッド（目盛り線）を表示
     # ファイル名の自動生成
     # 実際に使用している活性化関数名を取得
-    mid_act = sigmoid.__name__  # hidden layer activation
-    out_act = softmax.__name__  # output layer activation
+    mid_act = net.hidden_activation.__name__  # hidden layer activation
+    out_act = net.output_activation.__name__  # output layer activation
     optimizer_name = optimizer.__class__.__name__
     layer_str = '-'.join(str(n) for n in hidden_dims)
     output_filename = (
