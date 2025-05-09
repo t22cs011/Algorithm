@@ -30,11 +30,11 @@ def one_hot(labels, num_classes=10):  # ラベルをone-hotエンコーディン
 
 class MultiLayerNet:  # 多層パーセプトロン（MLP）を実現するクラスの定義
     def __init__(self, input_size=784, hidden_dims=[50], output_size=10,
-                 hidden_activation=sigmoid, output_activation=softmax):  # コンストラクタ: 入力サイズ、隠れ層の構造、出力サイズを指定
-        self.layers = [input_size] + hidden_dims + [output_size]  # ネットワークの各層のサイズをリストで定義（入力層→隠れ層→出力層）
+                 hidden_activation=sigmoid):  # コンストラクタ: 入力サイズ、中間層の構造、出力サイズを指定
+        self.layers = [input_size] + hidden_dims + [output_size]  # ネットワークの各層のサイズをリストで定義（入力層→中間層→出力層）
         self.hidden_activation = hidden_activation
-        self.output_activation = output_activation
-        self.num_layers = len(self.layers) - 1  # 重みを持つレイヤーの数（隠れ層と出力層の合計）を計算
+        self.output_activation = softmax  # 出力層は常にsoftmaxで固定
+        self.num_layers = len(self.layers) - 1  # 重みを持つレイヤーの数（中間層と出力層の合計）を計算
         self.params = {}  # パラメータ（重みとバイアス）を保存する辞書を初期化
         for i in range(self.num_layers):  # 各レイヤーに対してパラメータを初期化
             self.params['W' + str(i+1)] = np.random.randn(self.layers[i], self.layers[i+1]) * np.sqrt(2.0 / self.layers[i])  # He初期化を用いて重みをランダムに設定
@@ -42,7 +42,7 @@ class MultiLayerNet:  # 多層パーセプトロン（MLP）を実現するク�
     
     def predict(self, x):  # 順伝播により予測結果を計算するメソッド
         out = x  # 入力データを出力の初期値に設定
-        for i in range(1, self.num_layers):  # 隠れ層までループ
+        for i in range(1, self.num_layers):  # 中間層までループ
             W = self.params['W' + str(i)]  # i層目の重みを取得
             b = self.params['b' + str(i)]  # i層目のバイアスを取得
             out = self.hidden_activation(np.dot(out, W) + b)  # 線形変換にhidden_activationを適用
@@ -73,13 +73,13 @@ class MultiLayerNet:  # 多層パーセプトロン（MLP）を実現するク�
             pre_activations.append(a)  # 線形変換結果を保存
             if i == self.num_layers:  # 最終層の場合
                 z = self.output_activation(a)  # output_activationを適用
-            else:  # 隠れ層の場合
+            else:  # 中間層の場合
                 z = self.hidden_activation(a)  # hidden_activationを適用
             activations.append(z)  # 活性化結果をリストに追加
         delta = (activations[-1] - t) / batch_num  # 出力層の誤差（交差エントロピーとソフトマックスの組み合わせによる微分）を計算
         grads['W' + str(self.num_layers)] = np.dot(activations[-2].T, delta)  # 出力層の重みの勾配を計算
         grads['b' + str(self.num_layers)] = np.sum(delta, axis=0)  # 出力層のバイアスの勾配を計算
-        for i in range(self.num_layers - 1, 0, -1):  # 逆伝播を隠れ層に向かって実施
+        for i in range(self.num_layers - 1, 0, -1):  # 逆伝播を中間層に向かって実施
             W_next = self.params['W' + str(i+1)]  # 次の層の重みを取得
             if self.hidden_activation == sigmoid:
                 derivative = activations[i] * (1 - activations[i])
@@ -94,7 +94,7 @@ class MultiLayerNet:  # 多層パーセプトロン（MLP）を実現するク�
 if __name__ == '__main__':  # このスクリプトが直接実行された場合のエントリポイント
     # ユーザー入力によるパラメータ指定
     start_time = time.time()  # 実行開始時刻を記録
-    hidden_dims_str = input("隠れ層のニューロン数をカンマ区切りで入力してください（例: 64,128,64）: ")
+    hidden_dims_str = input("中間層のニューロン数をカンマ区切りで入力してください（例: 64,128,64）: ")
     hidden_dims = [int(x) for x in hidden_dims_str.split(',')]
     epochs = int(input("学習エポック数を入力してください: "))
     batch_size = int(input("ミニバッチサイズを入力してください: "))
@@ -103,15 +103,12 @@ if __name__ == '__main__':  # このスクリプトが直接実行された場�
     # 活性化関数選択
     act_options = {
         'sigmoid': sigmoid,
-        'relu': relu,
-        'softmax': softmax
+        'relu': relu
     }
     hidden_act_input = input("中間層の活性化関数を選択してください (sigmoid, relu) [default: sigmoid]: ").strip()
     hidden_activation = act_options.get(hidden_act_input, sigmoid)
-    out_act_input = input("出力層の活性化関数を選択してください (softmax, sigmoid, relu) [default: softmax]: ").strip()
-    output_activation = act_options.get(out_act_input, softmax)
 
-    print(f"実行設定: 隠れ層={hidden_dims}, エポック数={epochs}, バッチサイズ={batch_size}, 学習率={learning_rate}")
+    print(f"実行設定: 中間層={hidden_dims}, エポック数={epochs}, バッチサイズ={batch_size}, 学習率={learning_rate}")
     input("Enterキーを押すと学習を開始します...")
 
     # MNIST読み込み開始
@@ -122,8 +119,7 @@ if __name__ == '__main__':  # このスクリプトが直接実行された場�
         input_size=784,
         hidden_dims=hidden_dims,
         output_size=10,
-        hidden_activation=hidden_activation,
-        output_activation=output_activation
+        hidden_activation=hidden_activation
     )  # MultiLayerNetクラスのインスタンスを生成しモデルを初期化
 
     train_acc_list = []  # 各エポックにおける訓練精度を記録するリストを初期化
@@ -171,7 +167,7 @@ if __name__ == '__main__':  # このスクリプトが直接実行された場�
     layer_str = '-'.join(str(n) for n in hidden_dims)
     opt_name = optimizer.__class__.__name__
     mid_act = net.hidden_activation.__name__
-    out_act = net.output_activation.__name__
+    out_act = 'softmax'
     title_str = (
         f"Layers:{num_layers}[{layer_str}] "
         f"bs:{batch_size} lr:{learning_rate} "
@@ -183,7 +179,7 @@ if __name__ == '__main__':  # このスクリプトが直接実行された場�
     # ファイル名の自動生成
     # 実際に使用している活性化関数名を取得
     mid_act = net.hidden_activation.__name__  # hidden layer activation
-    out_act = net.output_activation.__name__  # output layer activation
+    out_act = 'softmax'  # output layer activation
     optimizer_name = optimizer.__class__.__name__
     layer_str = '-'.join(str(n) for n in hidden_dims)
     output_filename = (
