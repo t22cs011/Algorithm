@@ -93,16 +93,28 @@ class MultiLayerNet:  # 多層パーセプトロン（MLP）を実現するク�
 
 if __name__ == '__main__':  # 自動実験モード
     experiments = [
+        # 🟢 汎化できている（ベースライン）
         {"hidden_dims": [64], "epochs": 50, "batch_size": 128, "lr": 0.01},
         {"hidden_dims": [128, 128], "epochs": 50, "batch_size": 128, "lr": 0.01},
         {"hidden_dims": [256, 256, 256], "epochs": 100, "batch_size": 128, "lr": 0.005},
+
+        # 🟡 軽度〜中度の過学習
         {"hidden_dims": [512, 512, 512, 512], "epochs": 100, "batch_size": 128, "lr": 0.001},
         {"hidden_dims": [1024, 1024], "epochs": 100, "batch_size": 128, "lr": 0.001},
         {"hidden_dims": [1024]*6, "epochs": 100, "batch_size": 128, "lr": 0.001},
         {"hidden_dims": [64]*20, "epochs": 100, "batch_size": 128, "lr": 0.01},
         {"hidden_dims": [8]*12, "epochs": 100, "batch_size": 128, "lr": 0.01},
+
+        # 🔴 重度の過学習
+        {"hidden_dims": [1024]*10, "epochs": 100, "batch_size": 128, "lr": 0.001},
+        {"hidden_dims": [2048, 1024, 512, 256], "epochs": 100, "batch_size": 128, "lr": 0.001},
+        {"hidden_dims": [512]*30, "epochs": 100, "batch_size": 128, "lr": 0.001},
+        {"hidden_dims": [512]*6, "epochs": 300, "batch_size": 128, "lr": 0.0001},
+
+        # ⚫ データ不足による過学習
         {"hidden_dims": [512, 512], "epochs": 100, "batch_size": 128, "lr": 0.001, "train_ratio": 0.25},
-        {"hidden_dims": [1024, 1024], "epochs": 100, "batch_size": 128, "lr": 0.001, "train_ratio": 0.10}
+        {"hidden_dims": [1024, 1024], "epochs": 100, "batch_size": 128, "lr": 0.001, "train_ratio": 0.10},
+        {"hidden_dims": [1024, 1024, 512], "epochs": 100, "batch_size": 128, "lr": 0.001, "train_ratio": 0.017}
     ]
 
     for idx, config in enumerate(experiments, 1):
