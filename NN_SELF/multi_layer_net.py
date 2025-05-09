@@ -146,16 +146,11 @@ if __name__ == '__main__':  # このスクリプトが直接実行された場�
     optimizer = OptimizerClass(lr=learning_rate)
 
     for epoch in range(epochs):
-        # エポック開始ごとに訓練データをシャッフルし、一度だけ全データを使用する
-        indices = np.random.permutation(X_train.shape[0])
-        X_train = X_train[indices]
-        T_train = T_train[indices]
         progress_interval = max(1, iter_per_epoch // 10)  # 進捗表示の間隔を設定（各エポックの10分の1ごとに表示）
         for i in range(iter_per_epoch):
-            start = i * batch_size
-            end = start + batch_size
-            x_batch = X_train[start:end]
-            t_batch = T_train[start:end]
+            batch_mask = np.random.choice(X_train.shape[0], batch_size)
+            x_batch = X_train[batch_mask]
+            t_batch = T_train[batch_mask]
             grads = net.gradient(x_batch, t_batch)
             optimizer.update(net.params, grads)
             if (i + 1) % progress_interval == 0:
