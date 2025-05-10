@@ -4,9 +4,9 @@ from functions import sigmoid, softmax, relu, cross_entropy_error  # 必要な�
 from optimizer import SGD, Momentum, Nesterov, AdaGrad, RMSprop, Adam  # 同一パッケージ内のoptimizerモジュールから最適化手法をインポート
 import time  # 実行時間計測用
 
-# 以下の設定で日本語フォントをAppleGothicに変更（macOSの場合）
+# 以下の設定で日本語フォントを変更
 import matplotlib
-matplotlib.rcParams['font.family'] = 'AppleGothic'
+matplotlib.rcParams['font.family'] = 'IPAexGothic'  # Linux用の日本語フォント
 plt.rcParams['axes.unicode_minus'] = False
 
 
