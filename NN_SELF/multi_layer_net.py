@@ -93,28 +93,29 @@ class MultiLayerNet:  # 多層パーセプトロン（MLP）を実現するク�
 
 if __name__ == '__main__':  # 自動実験モード
     experiments = [
-        # 🟢 汎化できている（ベースライン）
-        {"hidden_dims": [64], "epochs": 50, "batch_size": 128, "lr": 0.01},
-        {"hidden_dims": [128, 128], "epochs": 50, "batch_size": 128, "lr": 0.01},
-        {"hidden_dims": [256, 256, 256], "epochs": 100, "batch_size": 128, "lr": 0.005},
+        # 1) 浅くて狭い → underfitting しやすい
+        {"hidden_dims": [8], "epochs": 200, "batch_size": 128, "lr": 0.001},
 
-        # 🟡 軽度〜中度の過学習
-        {"hidden_dims": [512, 512, 512, 512], "epochs": 100, "batch_size": 128, "lr": 0.001},
-        {"hidden_dims": [1024, 1024], "epochs": 100, "batch_size": 128, "lr": 0.001},
-        {"hidden_dims": [1024]*6, "epochs": 100, "batch_size": 128, "lr": 0.001},
-        {"hidden_dims": [64]*20, "epochs": 100, "batch_size": 128, "lr": 0.01},
-        {"hidden_dims": [8]*12, "epochs": 100, "batch_size": 128, "lr": 0.01},
+        # 2) 浅くて中くらい → ベースライン
+        {"hidden_dims": [128], "epochs": 200, "batch_size": 128, "lr": 0.001},
 
-        # 🔴 重度の過学習
-        {"hidden_dims": [1024]*10, "epochs": 100, "batch_size": 128, "lr": 0.001},
-        {"hidden_dims": [2048, 1024, 512, 256], "epochs": 100, "batch_size": 128, "lr": 0.001},
-        {"hidden_dims": [512]*30, "epochs": 100, "batch_size": 128, "lr": 0.001},
-        {"hidden_dims": [512]*6, "epochs": 300, "batch_size": 128, "lr": 0.0001},
+        # 3) 少し深い＆中くらい → 軽度過学習の兆し
+        {"hidden_dims": [128, 128], "epochs": 200, "batch_size": 128, "lr": 0.001},
 
-        # ⚫ データ不足による過学習
-        {"hidden_dims": [512, 512], "epochs": 100, "batch_size": 128, "lr": 0.001, "train_ratio": 0.25},
-        {"hidden_dims": [1024, 1024], "epochs": 100, "batch_size": 128, "lr": 0.001, "train_ratio": 0.10},
-        {"hidden_dims": [1024, 1024, 512], "epochs": 100, "batch_size": 128, "lr": 0.001, "train_ratio": 0.017}
+        # 4) 深くて中くらい → 過学習が出始める
+        {"hidden_dims": [128]*4, "epochs": 200, "batch_size": 128, "lr": 0.001},
+
+        # 5) 深くて広い → 重度過学習
+        {"hidden_dims": [1024]*16, "epochs": 200, "batch_size": 128, "lr": 0.001},
+
+        # 6) ボトルネック構造 → 情報圧縮の影響観察
+        {"hidden_dims": [1024, 64, 1024], "epochs": 200, "batch_size": 128, "lr": 0.001},
+
+        # 7) ピラミッド（広→狭） → 階層的特徴抽出の過学習傾向
+        {"hidden_dims": [512, 256, 128, 64], "epochs": 200, "batch_size": 128, "lr": 0.001},
+
+        # 8) 逆ピラミッド（狭→広） → 拡張による学習安定性比較
+        {"hidden_dims": [64, 128, 256, 512], "epochs": 200, "batch_size": 128, "lr": 0.001}
     ]
 
     for idx, config in enumerate(experiments, 1):
