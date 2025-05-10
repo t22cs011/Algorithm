@@ -92,30 +92,49 @@ class MultiLayerNet:  # 多層パーセプトロン（MLP）を実現するク�
 
 
 if __name__ == '__main__':  # 自動実験モード
+
     experiments = [
-        # 1) 浅くて狭い → underfitting しやすい
-        {"hidden_dims": [8], "epochs": 200, "batch_size": 128, "lr": 0.001},
+    # D1: 浅くて狭い → underfitting しやすい
+    {"hidden_dims": [8], "epochs": 200, "batch_size": 128, "lr": 0.001, "experiment_id": "D1"},
 
-        # 2) 浅くて中くらい → ベースライン
-        {"hidden_dims": [128], "epochs": 200, "batch_size": 128, "lr": 0.001},
+    # D2: 浅くて中くらい → ベースライン
+    {"hidden_dims": [128], "epochs": 200, "batch_size": 128, "lr": 0.001, "experiment_id": "D2"},
 
-        # 3) 少し深い＆中くらい → 軽度過学習の兆し
-        {"hidden_dims": [128, 128], "epochs": 200, "batch_size": 128, "lr": 0.001},
+    # D3: 浅くて広い → 表現力向上 vs 過学習リスク
+    {"hidden_dims": [512], "epochs": 200, "batch_size": 128, "lr": 0.001, "experiment_id": "D3"},
 
-        # 4) 深くて中くらい → 過学習が出始める
-        {"hidden_dims": [128]*4, "epochs": 200, "batch_size": 128, "lr": 0.001},
+    # D4: 少し深い＆狭い
+    {"hidden_dims": [64, 64], "epochs": 200, "batch_size": 128, "lr": 0.001, "experiment_id": "D4"},
 
-        # 5) 深くて広い → 重度過学習
-        {"hidden_dims": [1024]*16, "epochs": 200, "batch_size": 128, "lr": 0.001},
+    # D5: 少し深い＆中くらい → ベースライン + 軽度過学習の兆候
+    {"hidden_dims": [128, 128], "epochs": 200, "batch_size": 128, "lr": 0.001, "experiment_id": "D5"},
 
-        # 6) ボトルネック構造 → 情報圧縮の影響観察
-        {"hidden_dims": [1024, 64, 1024], "epochs": 200, "batch_size": 128, "lr": 0.001},
+    # D6: 少し深い＆広い
+    {"hidden_dims": [512, 512], "epochs": 200, "batch_size": 128, "lr": 0.001, "experiment_id": "D6"},
 
-        # 7) ピラミッド（広→狭） → 階層的特徴抽出の過学習傾向
-        {"hidden_dims": [512, 256, 128, 64], "epochs": 200, "batch_size": 128, "lr": 0.001},
+    # D7: 深くて狭い → 学習の安定性
+    {"hidden_dims": [64, 64, 64, 64], "epochs": 200, "batch_size": 128, "lr": 0.001, "experiment_id": "D7"},
 
-        # 8) 逆ピラミッド（狭→広） → 拡張による学習安定性比較
-        {"hidden_dims": [64, 128, 256, 512], "epochs": 200, "batch_size": 128, "lr": 0.001}
+    # D8: 深くて中くらい → 過学習の度合い
+    {"hidden_dims": [128, 128, 128, 128], "epochs": 200, "batch_size": 128, "lr": 0.001, "experiment_id": "D8"},
+
+    # D9: 深くて広い → 重度な過学習のリスク
+    {"hidden_dims": [256, 256, 256, 256], "epochs": 200, "batch_size": 128, "lr": 0.001, "experiment_id": "D9"},
+
+    # D10: ボトルネック構造 → 情報圧縮の効果
+    {"hidden_dims": [1024, 64, 1024], "epochs": 200, "batch_size": 128, "lr": 0.001, "experiment_id": "D10"},
+
+    # D11: ピラミッド（広→狭） → 階層的特徴抽出の過学習傾向
+    {"hidden_dims": [512, 256, 128, 64], "epochs": 200, "batch_size": 128, "lr": 0.001, "experiment_id": "D11"},
+
+    # D12: 逆ピラミッド（狭→広） → 拡張による学習安定性
+    {"hidden_dims": [64, 128, 256, 512], "epochs": 200, "batch_size": 128, "lr": 0.001, "experiment_id": "D12"},
+
+    # D13: より深く狭い → 学習の難しさ
+    {"hidden_dims": [256] * 8, "epochs": 200, "batch_size": 128, "lr": 0.001, "experiment_id": "D13"},
+
+    # D14: より深く広い → 過学習と計算コスト
+    {"hidden_dims": [1024] * 8, "epochs": 200, "batch_size": 128, "lr": 0.001, "experiment_id": "D14"},
     ]
 
     for idx, config in enumerate(experiments, 1):
@@ -174,5 +193,15 @@ if __name__ == '__main__':  # 自動実験モード
         plt.savefig(filename)
         print(f"✅ Saved: {filename} ({elapsed:.2f}秒)")
         plt.close()
+
+        # CSVログの保存処理を追加（実験結果をCSV形式で記録）
+        import csv
+        csv_filename = f"experiment_A{idx}_log.csv"
+        with open(csv_filename, "w", newline="", encoding="utf-8") as csvfile:
+            writer = csv.writer(csvfile)
+            writer.writerow(["Epoch", "Training Accuracy", "Test Accuracy"])
+            for epoch_num, (t_train, t_test) in enumerate(zip(train_acc_list, test_acc_list), start=1):
+                writer.writerow([epoch_num, f"{t_train:.4f}", f"{t_test:.4f}"])
+        print(f"✅ CSVログ保存: {csv_filename}")
 
     print("✅ All experiments completed")
