@@ -24,7 +24,7 @@ def relu(x):
 
 def relu_grad(x):
     grad = np.zeros_like(x)
-    grad[x >= 0] = 1
+    grad[x>=0] = 1
     return grad
 
 
@@ -34,7 +34,7 @@ def softmax(x):
 
 
 def sum_squared_error(y, t):
-    return 0.5 * np.sum((y - t) ** 2)
+    return 0.5 * np.sum((y-t)**2)
 
 
 def cross_entropy_error(y, t):
