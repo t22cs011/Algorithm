@@ -18,8 +18,23 @@ def run_experiments():
         {"hidden_dims": [4],    "epochs": 3, "batch_size": 128, "lr": 0.01},
         {"hidden_dims": [16],   "epochs": 3, "batch_size": 128, "lr": 0.01},
         {"hidden_dims": [64],   "epochs": 3, "batch_size": 128, "lr": 0.01},
-        {"hidden_dims": [256],  "epochs": 3, "batch_size": 128, "lr": 0.01},
-        {"hidden_dims": [1024], "epochs": 3, "batch_size": 128, "lr": 0.01},
+        {"hidden_dims": [4,4],    "epochs": 3, "batch_size": 128, "lr": 0.01},
+        {"hidden_dims": [16,16],   "epochs": 3, "batch_size": 128, "lr": 0.01},
+        {"hidden_dims": [64,64],   "epochs": 3, "batch_size": 128, "lr": 0.01},
+        # {"hidden_dims": [4,4,4],    "epochs": 3, "batch_size": 128, "lr": 0.01},
+        # {"hidden_dims": [16,16,16],   "epochs": 3, "batch_size": 128, "lr": 0.01},
+        # {"hidden_dims": [64,64,64],   "epochs": 3, "batch_size": 128, "lr": 0.01},
+        {"hidden_dims": [4,4,4,4],    "epochs": 3, "batch_size": 128, "lr": 0.01},
+        {"hidden_dims": [16,16,16,16],   "epochs": 3, "batch_size": 128, "lr": 0.01},
+        {"hidden_dims": [64,64,64,64],   "epochs": 3, "batch_size": 128, "lr": 0.01},
+        {"hidden_dims": [4,32,256,2048],   "epochs": 3, "batch_size": 128, "lr": 0.01},
+        {"hidden_dims": [2048,256,32,4],   "epochs": 3, "batch_size": 128, "lr": 0.01},
+        {"hidden_dims": [329, 329, 329, 329],     "epochs": 3, "batch_size": 128, "lr": 0.01},
+        {"hidden_dims": [4] * 8,          "epochs": 3, "batch_size": 128, "lr": 0.01},
+        
+
+        # {"hidden_dims": [256],  "epochs": 3, "batch_size": 128, "lr": 0.01},
+        # {"hidden_dims": [1024], "epochs": 3, "batch_size": 128, "lr": 0.01},
 
         # 1層のパターン
         # {"hidden_dims": [4],    "epochs": 200, "batch_size": 128, "lr": 0.01},
@@ -112,7 +127,7 @@ def run_experiments():
         layer_str = "-".join(map(str, config["hidden_dims"]))
         # 画像ファイル名を "[32]" などの形式に変更
         filename = f"[{layer_str}].png"
-        title = "NN: {}".format(str(config["hidden_dims"]))
+        title = "Accuracy: {}".format(str(config["hidden_dims"]))
         elapsed = time.time() - start_time
 
         epochs_range = np.arange(1, config["epochs"]+1)
@@ -169,9 +184,10 @@ def run_experiments():
     import glob
     import pandas as pd
 
-    # Only per-experiment logs named "[layers]_log.csv"
+    # 全ての per-experiment ログファイルを取得（括弧なしファイル名対応）
     csv_files = glob.glob("*_log.csv")
-    csv_files = [f for f in csv_files if f.startswith('[') and f.endswith('_log.csv')]
+    # experiment_all_log.csv を除外
+    csv_files = [f for f in csv_files if f != "experiment_all_log.csv" and f.endswith("_log.csv")]
 
     # Filter out any files without per-epoch Test Accuracy column
     csv_files = [f for f in csv_files if "Test Accuracy" in pd.read_csv(f, nrows=0).columns]
@@ -181,12 +197,14 @@ def run_experiments():
 
     for filepath in csv_files:
         df = pd.read_csv(filepath)
-        # ファイル名からベース名を取得し、先頭'['と末尾'_log.csv'を削除して層構成文字列を抽出
+        # ファイル名からベース名を取得し、末尾"_log.csv"を削除して層構成文字列を抽出
         fname = os.path.basename(filepath)
-        layer_str = fname[1:-9]  # e.g., "[64]_log.csv" -> "64", "[64-128]_log.csv" -> "64-128"
-        # 整数リストに変換
+        layer_str = fname[:-8]  # strip "_log.csv"
         dims = list(map(int, layer_str.split('-')))
         layers = len(dims)
+        # 層数が1〜4でないパターンはスキップ
+        if layers not in history:
+            continue
         # Test Accuracy 列をseriesとして格納
         history[layers][layer_str] = df["Test Accuracy"].values
 
@@ -207,7 +225,7 @@ def run_experiments():
             base = key.split('-')[0]
             c = color_map.get(base, None)
             ax.plot(series, label=key, color=c)
-        ax.set_title(f"{layers} hidden layer(s)")
+        ax.set_title(f"Test Accuracy by Epoch ({layers} Hidden Layer{'s' if layers > 1 else ''})")
         ax.set_xlabel("Epoch")
         ax.set_ylabel("Test Accuracy")
         ax.set_ylim(0.8, 1.0)  # y軸を0.7からに固定
@@ -221,6 +239,64 @@ def run_experiments():
     plt.tight_layout()
     plt.savefig("comparison_by_layer_and_units.png")
     print("✅ Saved comparison plot: comparison_by_layer_and_units.png")
+
+    # ---- Additional comparison: Group 1 (unbalanced four-layer patterns) ----
+    patterns1 = ["4-32-256-2048", "2048-256-32-4", "329-329-329-329"]
+    plt.figure(figsize=(8, 6))
+    for key in patterns1:
+        layers = len(key.split('-'))
+        series = history.get(layers, {}).get(key)
+        if series is not None:
+            plt.plot(series, label=key)
+    plt.xlabel("Epoch")
+    plt.ylabel("Test Accuracy")
+    plt.title("Comparison Group 1: Unbalanced Four-Layer Patterns")
+    plt.legend(loc='lower right')
+    plt.grid(True)
+    plt.savefig("comparison_group1.png")
+    print("✅ Saved comparison plot: comparison_group1.png")
+    plt.close()
+
+    # ---- Additional comparison: Group 2 (mixed-depth small patterns) ----
+    patterns2 = ["32-" * 31 + "32", "1024", "512-512", "256-256-256-256"]
+    # Note: "32-"*31+"32" produces "32-" repeated 31 times + "32" for 32 copies
+    plt.figure(figsize=(8, 6))
+    for key in patterns2:
+        layers = len(key.split('-'))
+        series = history.get(layers, {}).get(key)
+        if series is not None:
+            plt.plot(series, label=key)
+    plt.xlabel("Epoch")
+    plt.ylabel("Test Accuracy")
+    plt.title("Comparison Group 2: Mixed-Depth Small Patterns")
+    plt.legend(loc='lower right')
+    plt.grid(True)
+    plt.savefig("comparison_group2.png")
+    print("✅ Saved comparison plot: comparison_group2.png")
+    plt.close()
+
+    # ---- Additional comparison: Group 3 (1024-depth variations) ----
+    patterns3 = [
+        "1024-1024-1024-1024-1024-1024-1024-1024",
+        "1024",
+        "1024-1024",
+        "1024-1024-1024",
+        "1024-1024-1024-1024"
+    ]
+    plt.figure(figsize=(8, 6))
+    for key in patterns3:
+        layers = len(key.split('-'))
+        series = history.get(layers, {}).get(key)
+        if series is not None:
+            plt.plot(series, label=key)
+    plt.xlabel("Epoch")
+    plt.ylabel("Test Accuracy")
+    plt.title("Comparison Group 3: 1024-Unit Variations")
+    plt.legend(loc='lower right')
+    plt.grid(True)
+    plt.savefig("comparison_group3.png")
+    print("✅ Saved comparison plot: comparison_group3.png")
+    plt.close()
 
 
 if __name__ == '__main__':
