@@ -29,18 +29,16 @@ img_dim = (1, 28, 28)
 img_size = 784
 
 
-def _download(file_name):  # MNISTデータセットの各ファイルをダウンロードする関数
+def _download(file_name):
     file_path = dataset_dir + "/" + file_name
 
     if os.path.exists(file_path):
         return
 
     print("Downloading " + file_name + " ... ")
-    import ssl  # SSL認証を無視するためにsslモジュールをインポート
-    context = ssl._create_unverified_context()  # SSL検証を無視するコンテキストを作成
     headers = {"User-Agent": "Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:47.0) Gecko/20100101 Firefox/47.0"}
-    request = urllib.request.Request(url_base + file_name, headers=headers)
-    response = urllib.request.urlopen(request, context=context).read()  # SSLコンテキストを渡してリクエストを送信
+    request = urllib.request.Request(url_base+file_name, headers=headers)
+    response = urllib.request.urlopen(request).read()
     with open(file_path, mode='wb') as f:
         f.write(response)
     print("Done")
